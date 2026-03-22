@@ -145,14 +145,18 @@ async function updateStatus(req, res) {
   const req_data = result.rows[0];
 
   // When a request is fulfilled (done), deduct units from blood_inventory
+  // Return the updated inventory row so the frontend can update instantly
+  let updatedInventory = null;
   if (status === 'done') {
-    await query(
+    const invResult = await query(
       `UPDATE blood_inventory
        SET units_available = GREATEST(units_available - $1, 0),
            updated_at      = NOW()
-       WHERE blood_type = $2`,
+       WHERE blood_type = $2
+       RETURNING *`,
       [req_data.units_requested, req_data.blood_type]
     );
+    updatedInventory = invResult.rows[0] || null;
   }
 
   // Activity log
@@ -162,7 +166,10 @@ async function updateStatus(req, res) {
     [req.user.sub, id, `Status changed to ${status} — ${req_data.units_requested} units ${req_data.blood_type}`]
   );
 
-  return success(res, req_data, `Request ${status}`);
+  return success(res, {
+    request:   req_data,
+    inventory: updatedInventory,   // non-null only when status === 'done'
+  }, `Request ${status}`);
 }
 
 module.exports = { create, list, getOne, updateStatus };
