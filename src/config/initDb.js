@@ -58,4 +58,9 @@ async function initDb() {
   }
 }
 
-initDb().catch(console.error);
+// ✅ Export the function AND keep direct call when run standalone
+if (require.main === module) {
+  initDb().catch(console.error);
+}
+
+module.exports = initDb;

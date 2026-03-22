@@ -3,7 +3,7 @@ require('dotenv').config();
 
 const app    = require('./app');
 const { pool } = require('./config/db');
-const initDb = require('./config/initDb'); // ← ADD THIS
+const initDb = require('./config/initDb'); // ✅ no destructuring needed
 
 const PORT = parseInt(process.env.PORT || '5000');
 
