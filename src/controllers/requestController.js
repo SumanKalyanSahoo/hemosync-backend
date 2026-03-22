@@ -142,14 +142,27 @@ async function updateStatus(req, res) {
 
   if (result.rows.length === 0) return error(res, 'Request not found', 404);
 
+  const req_data = result.rows[0];
+
+  // When a request is fulfilled (done), deduct units from blood_inventory
+  if (status === 'done') {
+    await query(
+      `UPDATE blood_inventory
+       SET units_available = GREATEST(units_available - $1, 0),
+           updated_at      = NOW()
+       WHERE blood_type = $2`,
+      [req_data.units_requested, req_data.blood_type]
+    );
+  }
+
   // Activity log
   await query(
     `INSERT INTO activity_log (user_id, action, entity_type, entity_id, description)
      VALUES ($1, 'REQUEST_STATUS', 'blood_requests', $2, $3)`,
-    [req.user.sub, id, `Status changed to ${status}`]
+    [req.user.sub, id, `Status changed to ${status} — ${req_data.units_requested} units ${req_data.blood_type}`]
   );
 
-  return success(res, result.rows[0], `Request ${status}`);
+  return success(res, req_data, `Request ${status}`);
 }
 
 module.exports = { create, list, getOne, updateStatus };
