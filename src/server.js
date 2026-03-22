@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const app    = require('./app');
 const { pool } = require('./config/db');
+const initDb = require('./config/initDb'); // ← ADD THIS
 
 const PORT = parseInt(process.env.PORT || '5000');
 
@@ -15,7 +16,15 @@ async function startServer() {
     console.log('✅ PostgreSQL connected successfully');
   } catch (err) {
     console.error('❌ Failed to connect to PostgreSQL:', err.message);
-    console.error('   Make sure DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD are set in .env');
+    process.exit(1);
+  }
+
+  // ← ADD THIS BLOCK
+  try {
+    await initDb();
+    console.log('✅ Database initialized successfully');
+  } catch (err) {
+    console.error('❌ Failed to initialize database:', err.message);
     process.exit(1);
   }
 
@@ -39,7 +48,6 @@ async function startServer() {
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('SIGINT',  () => shutdown('SIGINT'));
 
-  // Unhandled rejection safety net
   process.on('unhandledRejection', (reason) => {
     console.error('Unhandled promise rejection:', reason);
   });
