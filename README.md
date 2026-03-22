@@ -295,7 +295,7 @@ git init
 git add .
 git commit -m "Initial HemoSync backend"
 git branch -M main
-git remote add origin https://github.com/your-username/hemosync-backend.git
+git remote add origin https://github.com/SumanKalyanSahoo/hemosync-backend.git
 git push -u origin main
 ```
 
