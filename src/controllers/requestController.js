@@ -146,8 +146,10 @@ async function updateStatus(req, res) {
 
   // When a request is fulfilled (done), deduct units from blood_inventory
   // Return the updated inventory row so the frontend can update instantly
+  // Deduct inventory when APPROVED (blood is committed/reserved for this request)
+  // This gives instant feedback — stock drops the moment hospital approves
   let updatedInventory = null;
-  if (status === 'done') {
+  if (status === 'approved') {
     const invResult = await query(
       `UPDATE blood_inventory
        SET units_available = GREATEST(units_available - $1, 0),
