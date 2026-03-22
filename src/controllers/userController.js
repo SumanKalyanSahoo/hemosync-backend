@@ -57,29 +57,55 @@ async function changePassword(req, res) {
 // ─── UPDATE HOSPITAL PROFILE ────────────────────────────────
 async function updateHospitalProfile(req, res) {
   const userId = req.user.sub;
-  const { org_name, authorized_person, hospital_type, bed_capacity, licence_number } = req.body;
+  const {
+    org_name, authorized_person, hospital_type,
+    bed_capacity, licence_number, phone, address,
+  } = req.body;
 
-  const fields = [];
-  const vals   = [];
-  let   idx    = 1;
+  // Update hospital_profiles table
+  const hpFields = [];
+  const hpVals   = [];
+  let   idx      = 1;
 
-  if (org_name)          { fields.push(`org_name          = $${idx++}`); vals.push(org_name);          }
-  if (authorized_person) { fields.push(`authorized_person = $${idx++}`); vals.push(authorized_person); }
-  if (hospital_type)     { fields.push(`hospital_type     = $${idx++}`); vals.push(hospital_type);     }
-  if (bed_capacity)      { fields.push(`bed_capacity      = $${idx++}`); vals.push(bed_capacity);      }
-  if (licence_number)    { fields.push(`licence_number    = $${idx++}`); vals.push(licence_number);    }
+  if (org_name         !== undefined) { hpFields.push(`org_name          = $${idx++}`); hpVals.push(org_name);          }
+  if (authorized_person!== undefined) { hpFields.push(`authorized_person = $${idx++}`); hpVals.push(authorized_person); }
+  if (hospital_type    !== undefined) { hpFields.push(`hospital_type     = $${idx++}`); hpVals.push(hospital_type);     }
+  if (bed_capacity     !== undefined) { hpFields.push(`bed_capacity      = $${idx++}`); hpVals.push(bed_capacity ? parseInt(bed_capacity) : null); }
+  if (licence_number   !== undefined) { hpFields.push(`licence_number    = $${idx++}`); hpVals.push(licence_number);    }
 
-  if (fields.length === 0) return error(res, 'No fields to update', 400);
+  let hpResult = { rows: [{}] };
+  if (hpFields.length > 0) {
+    hpVals.push(userId);
+    hpResult = await query(
+      `UPDATE hospital_profiles SET ${hpFields.join(', ')}
+       WHERE user_id = $${idx} RETURNING *`,
+      hpVals
+    );
+    if (hpResult.rows.length === 0) return error(res, 'Hospital profile not found', 404);
+  }
 
-  vals.push(userId);
-  const result = await query(
-    `UPDATE hospital_profiles SET ${fields.join(', ')}
-     WHERE user_id = $${idx} RETURNING *`,
-    vals
+  // Also update phone / address on the users table if provided
+  const uFields = [];
+  const uVals   = [];
+  let   uidx    = 1;
+  if (phone   !== undefined) { uFields.push(`phone   = $${uidx++}`); uVals.push(phone);   }
+  if (address !== undefined) { uFields.push(`address = $${uidx++}`); uVals.push(address); }
+
+  let userRow = null;
+  if (uFields.length > 0) {
+    uVals.push(userId);
+    const uRes = await query(
+      `UPDATE users SET ${uFields.join(', ')} WHERE id = $${uidx} RETURNING phone, address`,
+      uVals
+    );
+    userRow = uRes.rows[0];
+  }
+
+  return success(
+    res,
+    { ...hpResult.rows[0], ...(userRow || {}) },
+    'Hospital profile updated'
   );
-
-  if (result.rows.length === 0) return error(res, 'Hospital profile not found', 404);
-  return success(res, result.rows[0], 'Hospital profile updated');
 }
 
 // ─── UPDATE DONOR PROFILE ───────────────────────────────────
