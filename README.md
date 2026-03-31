@@ -8,7 +8,7 @@
 ```
 hemosync-backend/
 ├── package.json
-├── .env.example              ← copy to .env, fill your values
+├── .env.example              ← copy to .env, fill your values 
 ├── .gitignore
 │
 ├── sql/
